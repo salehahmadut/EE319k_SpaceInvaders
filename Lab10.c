@@ -109,7 +109,7 @@ typedef struct player player_t;
 typedef struct sprite sprite_t;
 
 #define MaxAliens 8
-
+#define MaxMissiles 10
 int NeedToWrite = 0;
 int adcData = 0;
 
@@ -117,6 +117,7 @@ sprite_t aliens[MaxAliens];
 sprite_t aliensrow2[MaxAliens];
 sprite_t aliensrow3[MaxAliens];
 player_t spaceship;
+sprite_t missiles[MaxMissiles];
 
 void Init(void) {
 	for(int i = 0; i<MaxAliens; i++)
@@ -145,6 +146,10 @@ void Init(void) {
 	spaceship.vx = 0;
 	spaceship.vy = 0;
 	spaceship.image = PlayerShip1;
+	for(int j = 0; j<MaxMissiles; j++)
+	{
+		missiles[j].status = dead;
+	}
 }
 
 void Systick_Init(){
@@ -172,15 +177,59 @@ void AlienMove(sprite_t aliens[]) {
 
 void PlayerMove() {
 	adcData = ADC_In();
-  NeedToWrite = 1;
-	spaceship.x =  (110*adcData)/4096;
+	spaceship.x = (110*adcData)/4096;
 	spaceship.y = 55;
 }
 
+void Fire(int32_t vx, int32_t vy, const uint8_t *img)
+{
+  int i = 0;
+	while(missiles[i].status == alive)
+	{
+		i++;
+		if(i==MaxMissiles) return;
+	}
+	missiles[i].x = spaceship.x+7;
+	missiles[i].y = spaceship.y+4;
+	missiles[i].vx = vx;
+	missiles[i].vy = vy;
+	missiles[i].image1 = Missile0;
+	missiles[i].status = alive;
+	return;
+}
+
+//void Collisions(void){
+
+		
+//}
+void MissileMove(void){
+	for(int i = 0; i<MaxMissiles; i++)
+	{
+		if(missiles[i].y < 0)
+		{
+			missiles[i].status = dead;
+		}
+		if(missiles[i].status == alive)
+		{
+			missiles[i].x += missiles[i].vx;
+			missiles[i].y += missiles[i].vy;
+		}
+	}
+}
+
+
 void SysTick_Handler(void) {
+	uint32_t btnInput = Switch_In();
+	//static uint32_t unpressed = 0;
+	if((btnInput&0x01)==1)
+	{
+		Fire(0, -1, Missile0);
+	}
 	AlienMove(aliens);
 	AlienMove(aliensrow2);
 	AlienMove(aliensrow3);
+	PlayerMove();
+	MissileMove();
 	NeedToWrite = 1;
 }
 
@@ -188,11 +237,27 @@ void Draw(void) {
 	SSD1306_ClearBuffer();
 	for(int i = 0; i<MaxAliens; i++)
 	{
-		SSD1306_DrawBMP(aliens[i].x, aliens[i].y, aliens[i].image1, 0, SSD1306_INVERSE);
-		SSD1306_DrawBMP(aliensrow2[i].x, aliensrow2[i].y, aliensrow2[i].image1, 0, SSD1306_INVERSE);
-		SSD1306_DrawBMP(aliensrow3[i].x, aliensrow3[i].y, aliensrow3[i].image1, 0, SSD1306_INVERSE);
+		if(aliens[i].status == alive)
+		{
+			SSD1306_DrawBMP(aliens[i].x, aliens[i].y, aliens[i].image1, 0, SSD1306_INVERSE);
+		}
+		if(aliensrow2[i].status == alive)
+		{			
+			SSD1306_DrawBMP(aliensrow2[i].x, aliensrow2[i].y, aliensrow2[i].image1, 0, SSD1306_INVERSE);
+		}
+		if(aliensrow3[i].status == alive)
+		{
+			SSD1306_DrawBMP(aliensrow3[i].x, aliensrow3[i].y, aliensrow3[i].image1, 0, SSD1306_INVERSE);
+		}
 	}
-		SSD1306_DrawBMP(spaceship.x, spaceship.y, spaceship.image, 0, SSD1306_INVERSE);
+	for(int j = 0; j<MaxMissiles; j++)
+	{
+		if(missiles[j].status == alive)
+		{
+			SSD1306_DrawBMP(missiles[j].x, missiles[j].y, missiles[j].image1, 0, SSD1306_INVERSE);
+		}
+	}
+	SSD1306_DrawBMP(spaceship.x, spaceship.y, spaceship.image, 0, SSD1306_INVERSE);
 	SSD1306_OutBuffer();
 	
 }
@@ -204,11 +269,11 @@ int main(void){
   SSD1306_OutClear();
 	Init();
 	Systick_Init();
-	ADC_Init();
+	ADC_Init(5);
+	Switch_Init();
 	EnableInterrupts();
 	while(1)
 	{
-		PlayerMove();
 		if(NeedToWrite)
 		{
 			Draw();
@@ -217,6 +282,7 @@ int main(void){
 	}
 }
 	
+//everything below this is starter code, can delete if u want or keep for reference
 
 int main1(void){
 	uint32_t time=0;
@@ -275,3 +341,4 @@ void Delay100ms(uint32_t count){uint32_t volatile time;
     count--;
   }
 }
+
