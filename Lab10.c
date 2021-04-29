@@ -95,20 +95,28 @@ struct sprite {
 	int32_t y;
 	int32_t vx,vy;
 	const uint8_t *image1;
-//	const uint8_t *image2;
 	status_t status;
 };
 
+struct player {
+	int32_t x;
+	int32_t y;
+	int32_t vx,vy;
+	const uint8_t *image;
+};
+
+typedef struct player player_t;
 typedef struct sprite sprite_t;
 
 #define MaxAliens 8
 
 int NeedToWrite = 0;
+int adcData = 0;
 
 sprite_t aliens[MaxAliens];
 sprite_t aliensrow2[MaxAliens];
 sprite_t aliensrow3[MaxAliens];
-
+player_t spaceship;
 
 void Init(void) {
 	for(int i = 0; i<MaxAliens; i++)
@@ -132,6 +140,11 @@ void Init(void) {
 		aliensrow3[i].image1 = Alien10pointA;
 		aliensrow3[i].status = alive;
 	}
+	spaceship.x = 63;
+	spaceship.y = 55;
+	spaceship.vx = 0;
+	spaceship.vy = 0;
+	spaceship.image = PlayerShip1;
 }
 
 void Systick_Init(){
@@ -142,7 +155,7 @@ void Systick_Init(){
 	NVIC_ST_CTRL_R = 7;
 }
 
-void AlienMoveLeftRight(sprite_t aliens[]) {
+void AlienMove(sprite_t aliens[]) {
 	if(((aliens[MaxAliens-1].x + aliens[MaxAliens-1].vx) > 115) || ((aliens[0].x + aliens[0].vx) < 0))
 	{
 		for(int i = 0; i<MaxAliens; i++)
@@ -157,10 +170,17 @@ void AlienMoveLeftRight(sprite_t aliens[]) {
 	}
 }
 
+void PlayerMove() {
+	adcData = ADC_In();
+  NeedToWrite = 1;
+	spaceship.x =  (110*adcData)/4096;
+	spaceship.y = 55;
+}
+
 void SysTick_Handler(void) {
-	AlienMoveLeftRight(aliens);
-	AlienMoveLeftRight(aliensrow2);
-	AlienMoveLeftRight(aliensrow3);
+	AlienMove(aliens);
+	AlienMove(aliensrow2);
+	AlienMove(aliensrow3);
 	NeedToWrite = 1;
 }
 
@@ -172,6 +192,7 @@ void Draw(void) {
 		SSD1306_DrawBMP(aliensrow2[i].x, aliensrow2[i].y, aliensrow2[i].image1, 0, SSD1306_INVERSE);
 		SSD1306_DrawBMP(aliensrow3[i].x, aliensrow3[i].y, aliensrow3[i].image1, 0, SSD1306_INVERSE);
 	}
+		SSD1306_DrawBMP(spaceship.x, spaceship.y, spaceship.image, 0, SSD1306_INVERSE);
 	SSD1306_OutBuffer();
 	
 }
@@ -183,9 +204,11 @@ int main(void){
   SSD1306_OutClear();
 	Init();
 	Systick_Init();
+	ADC_Init();
 	EnableInterrupts();
 	while(1)
 	{
+		PlayerMove();
 		if(NeedToWrite)
 		{
 			Draw();
