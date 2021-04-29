@@ -18,6 +18,6 @@ update log
 
 4/29 3:14 AM
 
--implemented edge triggered interrupt/button to shoot missile from spaceship
+-implemented button to shoot missile from spaceship (still need to make it edge triggered)
 
 -once collisions are implemented (hopefully tmrw), basics of game engine will be done and we can polish up the game from there
