@@ -15,3 +15,9 @@ update log
 -value fluctuates a bit, will prob implement hardware averaging later to make it more stable
 
 -will try to add buttons/missile firing mechanism later tonight
+
+4/29 3:14 AM
+
+-implemented edge triggered interrupt/button to shoot missile from spaceship
+
+-once collisions are implemented (hopefully tmrw), basics of game engine will be done and we can polish up the game from there
