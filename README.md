@@ -21,3 +21,9 @@ update log
 -implemented button to shoot missile from spaceship (still need to make it edge triggered)
 
 -once collisions are implemented (hopefully tmrw), basics of game engine will be done and we can polish up the game from there
+
+4/29 7:52 PM
+
+-collisions work, function isnt very general so will fix that later (won't work if alien layout is different)
+
+-need to add sound, make button edge triggered, add timer stuff
