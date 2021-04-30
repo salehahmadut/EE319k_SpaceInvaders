@@ -56,6 +56,7 @@
 #include "Timer1.h"
 #include "TExaS.h"
 #include "Switch.h"
+#include <stdlib.h>
 //********************************************************************************
 // debuging profile, pick up to 7 unused bits and send to Logic Analyzer
 #define PB54                  (*((volatile uint32_t *)0x400050C0)) // bits 5-4
@@ -198,10 +199,45 @@ void Fire(int32_t vx, int32_t vy, const uint8_t *img)
 	return;
 }
 
-//void Collisions(void){
-
+void Collisions(void){
+  for(int i = 0; i<MaxMissiles; i++)
+	{
+		for(int j = 0; j<MaxAliens; j++)
+		{
+			if(missiles[i].status == alive && aliens[j].status == alive)
+			{
+				if(abs(aliens[j].x - missiles[i].x)<12 && abs(aliens[j].y - missiles[i].y) <8)
+				{
+					missiles[i].status = dead;
+					aliens[j].status = dead;
+				}
+			}
+		}
+		for(int k = 0; k<MaxAliens; k++)
+		{
+			if(missiles[i].status == alive && aliensrow2[k].status == alive)
+			{
+				if(abs(aliensrow2[k].x - missiles[i].x)<12 && abs(aliensrow2[k].y - missiles[i].y) <8)
+				{
+					missiles[i].status = dead;
+					aliensrow2[k].status = dead;
+				}
+			}
+		}
+		for(int l = 0; l<MaxAliens; l++)
+		{
+			if(missiles[i].status == alive && aliensrow3[l].status == alive)
+			{
+				if(abs(aliensrow3[l].x - missiles[i].x)<12 && abs(aliensrow3[l].y - missiles[i].y) <8)
+				{
+					missiles[i].status = dead;
+					aliensrow3[l].status = dead;
+				}
+			}
+		}
+	}
 		
-//}
+}
 void MissileMove(void){
 	for(int i = 0; i<MaxMissiles; i++)
 	{
@@ -230,6 +266,7 @@ void SysTick_Handler(void) {
 	AlienMove(aliensrow3);
 	PlayerMove();
 	MissileMove();
+	Collisions();
 	NeedToWrite = 1;
 }
 
@@ -282,7 +319,6 @@ int main(void){
 	}
 }
 	
-//everything below this is starter code, can delete if u want or keep for reference
 
 int main1(void){
 	uint32_t time=0;
@@ -341,3 +377,4 @@ void Delay100ms(uint32_t count){uint32_t volatile time;
     count--;
   }
 }
+
