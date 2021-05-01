@@ -30,7 +30,9 @@ update log
 
 5/1 4:43 AM
 
--added lives, and aliens randomly shoot at player every 1 second (using timer1). can only get hit 6 times before dying (3 hearts w/ half hearts)
+-added player lives, and aliens randomly shoot at player every 1 second (using timer1). can only get hit 6 times before dying (3 hearts w/ half hearts)
+
+-added health for aliens & sprites reflecting how much damage done to an alien
 
 -will add lose condition when hearts = 0 later
 
