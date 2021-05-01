@@ -32,11 +32,11 @@ update log
 
 -added lives, and aliens randomly shoot at player every 1 second (using timer1). can only get hit 6 times before dying (3 hearts w/ half hearts)
 
--need to add lose condition when hearts = 0
+-will add lose condition when hearts = 0 later
 
 To-Do List
 
--make pause button highest priority interrupt during gameplay
+-make pause button highest priority interrupt during gameplay, add pause screen
 
 -sound stuff
 
