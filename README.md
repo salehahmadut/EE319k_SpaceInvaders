@@ -27,3 +27,21 @@ update log
 -collisions work, function isnt very general so will fix that later (won't work if alien layout is different)
 
 -need to add sound, make button edge triggered, add timer stuff
+
+5/1 4:43 AM
+
+-added lives, and aliens randomly shoot at player every 1 second (using timer1). can only get hit 6 times before dying (3 hearts w/ half hearts)
+
+-need to add lose condition when hearts = 0
+
+To-Do List
+
+-make pause button highest priority interrupt during gameplay
+
+-sound stuff
+
+-select language, instructions screen (not sure if we need this?)
+
+-make button stuff edge triggered 
+
+-display/calculate score in top right
