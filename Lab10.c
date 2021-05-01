@@ -1,3 +1,4 @@
+
 // Lab10.c
 // Runs on TM4C123
 // Jonathan Valvano and Daniel Valvano
@@ -97,6 +98,7 @@ struct sprite {
 	int32_t vx,vy;
 	const uint8_t *image1;
 	status_t status;
+	int32_t health;
 };
 
 struct player {
@@ -106,50 +108,78 @@ struct player {
 	const uint8_t *image;
 };
 
+struct heart {
+	int32_t x;
+	int32_t y;
+  const uint8_t *img;
+};
+
 typedef struct player player_t;
 typedef struct sprite sprite_t;
+typedef struct heart heart_t;
+
 
 #define MaxAliens 8
 #define MaxMissiles 10
+#define MaxHearts 3
+#define MaxLasers 5
+
 int NeedToWrite = 0;
 int adcData = 0;
+int lvl=0;
+int health = 6;
 
 sprite_t aliens[MaxAliens];
 sprite_t aliensrow2[MaxAliens];
 sprite_t aliensrow3[MaxAliens];
 player_t spaceship;
 sprite_t missiles[MaxMissiles];
+heart_t hearts[MaxHearts];
+sprite_t lasers[MaxLasers];
 
 void Init(void) {
 	for(int i = 0; i<MaxAliens; i++)
 	{
 		aliens[i].x = 12*i + 10;
-		aliens[i].y = 10;
+		aliens[i].y = 20;
 		aliens[i].vx = 1;
 		aliens[i].vy = 0;
 		aliens[i].image1 = Alien10pointA;
-		aliens[i].status = alive;
+		aliens[i].status = dead;
+		aliens[i].health = 3;
 		aliensrow2[i].x = 12*i + 10;
-		aliensrow2[i].y = 20;
+		aliensrow2[i].y = 30;
 		aliensrow2[i].vx = 1;
 		aliensrow2[i].vy = 0;
 		aliensrow2[i].image1 = Alien10pointA;
-		aliensrow2[i].status = alive;
+		aliensrow2[i].status = dead;
+		aliensrow2[i].health = 3;
 		aliensrow3[i].x = 12*i + 10;
-		aliensrow3[i].y = 30;
+		aliensrow3[i].y = 40;
 		aliensrow3[i].vx = 1;
 		aliensrow3[i].vy = 0;
 		aliensrow3[i].image1 = Alien10pointA;
-		aliensrow3[i].status = alive;
+		aliensrow3[i].status = dead;
+		aliensrow3[i].health = 3;
+	}
+	for(int j = 0; j<MaxHearts; j++)
+	{
+		hearts[j].x = 12*j;
+		hearts[j].y = 9;
+		hearts[j].img = halfheart;
 	}
 	spaceship.x = 63;
-	spaceship.y = 55;
+	spaceship.y = 62;
 	spaceship.vx = 0;
 	spaceship.vy = 0;
 	spaceship.image = PlayerShip1;
 	for(int j = 0; j<MaxMissiles; j++)
 	{
 		missiles[j].status = dead;
+	}
+	for(int k = 0; k<MaxLasers; k++)
+	{
+		lasers[k].status = dead;
 	}
 }
 
@@ -167,12 +197,17 @@ void AlienMove(sprite_t aliens[]) {
 		for(int i = 0; i<MaxAliens; i++)
 		{
 			aliens[i].vx = -aliens[i].vx;
+			aliens[i].vy = 1;
 		}
 	}
 	for(int j = 0; j<MaxAliens; j++)
 	{
 		aliens[j].x += aliens[j].vx;
 		aliens[j].y += aliens[j].vy;
+	}
+	for(int k = 0; k<MaxAliens; k++)
+	{
+		aliens[k].vy = 0;
 	}
 }
 
@@ -190,8 +225,8 @@ void Fire(int32_t vx, int32_t vy, const uint8_t *img)
 		i++;
 		if(i==MaxMissiles) return;
 	}
-	missiles[i].x = spaceship.x+7;
-	missiles[i].y = spaceship.y+4;
+	missiles[i].x = spaceship.x+8;
+	missiles[i].y = spaceship.y-6;
 	missiles[i].vx = vx;
 	missiles[i].vy = vy;
 	missiles[i].image1 = Missile0;
@@ -199,31 +234,51 @@ void Fire(int32_t vx, int32_t vy, const uint8_t *img)
 	return;
 }
 
+void AlienFire(void)
+{
+	int rand = Random32() % MaxAliens;
+	int i = 0;
+	while(lasers[i].status == alive || aliens[rand].status == dead)
+	{
+	  if(lasers[i].status == alive)
+		{
+			i++;
+		}
+		if(aliens[rand].status == dead)
+		{
+			rand = Random32() % MaxAliens;
+		}
+		if(i==MaxMissiles) return;
+	}
+	
+	lasers[i].x = aliens[rand].x+6;
+	lasers[i].y = aliens[rand].y;
+	lasers[i].vx = 0;
+	lasers[i].vy = 2;
+	lasers[i].image1 = Laser0;
+	lasers[i].status = alive;
+	return;
+	
+}
+
+void LaserMove(void){
+	for(int i = 0; i<MaxLasers; i++)
+	{
+		if(lasers[i].y > 63)
+		{
+			lasers[i].status = dead;
+		}
+		if(lasers[i].status == alive)
+		{
+			lasers[i].x += lasers[i].vx;
+			lasers[i].y += lasers[i].vy;
+		}
+	}
+}
+
 void Collisions(void){
   for(int i = 0; i<MaxMissiles; i++)
 	{
-		for(int j = 0; j<MaxAliens; j++)
-		{
-			if(missiles[i].status == alive && aliens[j].status == alive)
-			{
-				if(abs(aliens[j].x - missiles[i].x)<12 && abs(aliens[j].y - missiles[i].y) <8)
-				{
-					missiles[i].status = dead;
-					aliens[j].status = dead;
-				}
-			}
-		}
-		for(int k = 0; k<MaxAliens; k++)
-		{
-			if(missiles[i].status == alive && aliensrow2[k].status == alive)
-			{
-				if(abs(aliensrow2[k].x - missiles[i].x)<12 && abs(aliensrow2[k].y - missiles[i].y) <8)
-				{
-					missiles[i].status = dead;
-					aliensrow2[k].status = dead;
-				}
-			}
-		}
 		for(int l = 0; l<MaxAliens; l++)
 		{
 			if(missiles[i].status == alive && aliensrow3[l].status == alive)
@@ -231,11 +286,58 @@ void Collisions(void){
 				if(abs(aliensrow3[l].x - missiles[i].x)<12 && abs(aliensrow3[l].y - missiles[i].y) <8)
 				{
 					missiles[i].status = dead;
-					aliensrow3[l].status = dead;
+					aliensrow3[l].health--;
+					if(aliensrow3[l].health == 0)
+					{
+						aliensrow3[l].status = dead;
+					}
 				}
 			}
 		}
-	}
+		
+		for(int k = 0; k<MaxAliens; k++)
+		{
+			if(missiles[i].status == alive && aliensrow2[k].status == alive)
+			{
+				if(abs(aliensrow2[k].x - missiles[i].x)<12 && abs(aliensrow2[k].y - missiles[i].y) <8)
+				{
+					missiles[i].status = dead;
+					aliensrow2[k].health--;
+					if(aliensrow2[k].health == 0)
+					{
+						aliensrow2[k].status = dead;
+					}
+				}
+			}
+		}
+		for(int j = 0; j<MaxAliens; j++)
+		{
+			if(missiles[i].status == alive && aliens[j].status == alive)
+			{
+				if(abs(aliens[j].x - missiles[i].x)<12 && abs(aliens[j].y - missiles[i].y) <8)
+				{
+					missiles[i].status = dead;
+					aliens[j].health--;
+					if(aliens[j].health == 0)
+					{
+						aliens[j].status = dead;
+					}
+				}
+			}
+		}
+		for(int m = 0; m<MaxLasers; m++)
+		{
+			if(lasers[m].status == alive)
+			{
+				if(abs(lasers[m].x - spaceship.x)<16 && abs(lasers[m].y - spaceship.y)<6)
+				{
+					lasers[m].status = dead;
+					health--;
+				}					
+			}
+		}
+		
+	} 
 		
 }
 void MissileMove(void){
@@ -252,25 +354,220 @@ void MissileMove(void){
 		}
 	}
 }
+int gonext=0;
 
+void LevelOver(void){
+	uint32_t btnInput = Switch_In();
+	if(lvl==0){
+		while((btnInput&0x01)==0)
+	{
+		btnInput = Switch_In();
+	}
+	gonext=1;
+	}
+	else if(lvl==1){
+		for(int i=0; i<MaxAliens; i++){
+			if(aliens[i].status == alive){
+				return;
+			}
+		}
+		gonext=1;
+	}
+	else if(lvl==2){
+		for(int i=0; i<MaxAliens; i++){
+			if(aliens[i].status == alive || aliensrow2[i].status==alive){
+				return;
+			}
+		}
+		gonext=1;
+	}
+	else if(lvl==3){
+		for(int i=0; i<MaxAliens; i++){
+			if(aliens[i].status == alive || aliensrow2[i].status==alive || aliensrow3[i].status==alive){
+				return;
+			}
+		}
+		gonext=1;
+	}
+	else if(lvl==4){
+		if((btnInput&0x02)==2)
+	{
+		lvl=0;
+	}
+	}
+	else if(lvl==5){
+		if((btnInput&0x02)==2)
+	{
+		lvl=0;
+	}
+	}
+
+}
+void NextLevel(void){
+	if(gonext==1){
+		lvl++;
+		if(lvl==1){
+			for(int i=0; i<MaxAliens; i++){
+				aliens[i].status = alive;
+				aliens[i].y = 20;
+				aliens[i].health = 3;
+			}
+		}
+		if(lvl==2){
+			for(int i=0; i<MaxAliens; i++){
+				aliens[i].status = alive;
+				aliensrow2[i].status = alive;
+				aliens[i].health = 3;
+				aliensrow2[i].health = 3;
+				aliens[i].y = 20;
+				aliensrow2[i].y = 30;
+				
+			}
+		}
+		else if(lvl==3){
+			for(int i=0; i<MaxAliens; i++){
+				aliens[i].status = alive;
+				aliensrow2[i].status = alive;
+				aliensrow3[i].status = alive;
+				aliens[i].health = 3;
+				aliensrow2[i].health = 3;
+				aliensrow3[i].health = 3;
+				aliens[i].y = 20;
+				aliensrow2[i].y = 30;
+				aliensrow3[i].y = 40;
+			}
+		}
+		else if(lvl==4){
+			SSD1306_ClearBuffer();
+			SSD1306_OutClear();  
+			SSD1306_SetCursor(1, 1);
+			SSD1306_OutString("Congratulations!");
+			SSD1306_SetCursor(1, 2);
+			SSD1306_OutString("You Win!");
+			SSD1306_SetCursor(1, 3);
+			SSD1306_OutString("Press Button 2 to ");
+			SSD1306_SetCursor(1, 4);
+			SSD1306_OutString("Play Again");
+		}
+		else if(lvl==5){
+			SSD1306_ClearBuffer();
+			SSD1306_OutClear();  
+			SSD1306_SetCursor(1, 1);
+			SSD1306_OutString("Game Over");
+			SSD1306_SetCursor(1, 2);
+			SSD1306_OutString("You Lose");
+			SSD1306_SetCursor(1, 3);
+			SSD1306_OutString("Press Button 2 to ");
+			SSD1306_SetCursor(1, 4);
+			SSD1306_OutString("Play Again");
+		}
+		gonext=0;
+	}
+	
+}
+void IsLost(void){
+	if(lvl==1){
+		for(int i=0; i<MaxAliens; i++){
+			if(aliens[i].status==alive && aliens[i].y>spaceship.y){
+				lvl=4;            //goes to lvl 4 so that the gonext function automatically increments to lvl5
+				gonext=1;
+			}
+		}
+	}
+	else if(lvl==2){
+		for(int i=0; i<MaxAliens; i++){
+			if((aliens[i].status==alive && aliens[i].y>spaceship.y) || (aliensrow2[i].status==alive && aliensrow2[i].y>spaceship.y)){
+				lvl=4;
+				gonext=1;
+			}
+		}
+	}
+	else if(lvl==3){
+		for(int i=0; i<MaxAliens; i++){
+			if((aliens[i].status==alive && aliens[i].y>spaceship.y) || (aliensrow2[i].status==alive && aliensrow2[i].y>spaceship.y) || (aliensrow3[i].status==alive && aliensrow3[i].y>spaceship.y)){
+				lvl=4;
+			gonext=1;
+			}
+		}
+	}
+}
+void SetHearts(int32_t health, int32_t numHearts)
+{
+	for(int i = 0; i<numHearts; i++)
+	{
+		if(health >= 2*i + 2)
+		{
+			hearts[i].img = fullheart;
+		}
+		else if(health == 2*i+1)
+		{
+			hearts[i].img = halfheart;
+		}
+		else
+		{
+			hearts[i].img = emptyheart;
+		}
+	}
+}
+void UpdateAlienImg(sprite_t aliens[])
+{
+	for(int i = 0; i<MaxAliens; i++)
+	{
+		if(aliens[i].status == alive)
+		{
+			if(aliens[i].health == 3)
+			{
+				aliens[i].image1 = Alien10pointA;
+			}
+			if(aliens[i].health == 2)
+			{
+				aliens[i].image1 = alien10pointAdamaged;
+			}
+			if(aliens[i].health == 1)
+			{
+				aliens[i].image1 = alien10pointAverydamaged;
+			}
+		}
+	}
+}
 
 void SysTick_Handler(void) {
 	uint32_t btnInput = Switch_In();
 	//static uint32_t unpressed = 0;
+	if(lvl==0){
+	SSD1306_ClearBuffer();
+  SSD1306_DrawBMP(2, 62, SpaceInvadersMarquee, 0, SSD1306_WHITE);
+  SSD1306_OutBuffer();
+	
+	}
 	if((btnInput&0x01)==1)
 	{
-		Fire(0, -1, Missile0);
+		Fire(0, -2, Missile0);
 	}
 	AlienMove(aliens);
 	AlienMove(aliensrow2);
 	AlienMove(aliensrow3);
 	PlayerMove();
-	MissileMove();
 	Collisions();
+	MissileMove();
+	LaserMove();
+	IsLost();
+	LevelOver();
+	NextLevel();
+//	SetHearts(health, MaxHearts);
+//	UpdateAliens(aliens);
+//	UpdateAliens(aliensrow2);
+//	UpdateAliens(aliensrow3);
+	if(lvl!=4 && lvl!=5){
 	NeedToWrite = 1;
+	}
 }
 
 void Draw(void) {
+	SetHearts(health, MaxHearts);
+	UpdateAlienImg(aliens);
+	UpdateAlienImg(aliensrow2);
+	UpdateAlienImg(aliensrow3);
 	SSD1306_ClearBuffer();
 	for(int i = 0; i<MaxAliens; i++)
 	{
@@ -294,7 +591,20 @@ void Draw(void) {
 			SSD1306_DrawBMP(missiles[j].x, missiles[j].y, missiles[j].image1, 0, SSD1306_INVERSE);
 		}
 	}
+	for(int m = 0; m<MaxLasers; m++)
+	{
+		if(lasers[m].status == alive)
+		{
+			SSD1306_DrawBMP(lasers[m].x, lasers[m].y, lasers[m].image1, 0, SSD1306_INVERSE);
+		}
+	}
+	for(int k = 0; k<MaxHearts; k++)
+	{
+		SSD1306_DrawBMP(hearts[k].x, hearts[k].y, hearts[k].img, 0, SSD1306_INVERSE);
+	}
+	if(lvl!=0){
 	SSD1306_DrawBMP(spaceship.x, spaceship.y, spaceship.image, 0, SSD1306_INVERSE);
+	}
 	SSD1306_OutBuffer();
 	
 }
@@ -306,9 +616,10 @@ int main(void){
   SSD1306_OutClear();
 	Init();
 	Systick_Init();
-	ADC_Init(5);
+	ADC_Init(4);
 	Switch_Init();
 	EnableInterrupts();
+	Timer1_Init(&AlienFire, 80000000);
 	while(1)
 	{
 		if(NeedToWrite)
@@ -319,62 +630,4 @@ int main(void){
 	}
 }
 	
-
-int main1(void){
-	uint32_t time=0;
-  DisableInterrupts();
-  // pick one of the following three lines, all three set to 80 MHz
-  //PLL_Init();                   // 1) call to have no TExaS debugging
-  TExaS_Init(&LogicAnalyzerTask); // 2) call to activate logic analyzer
-  //TExaS_Init(&ScopeTask);       // or 3) call to activate analog scope PD2
-  SSD1306_Init(SSD1306_SWITCHCAPVCC);
-  SSD1306_OutClear();   
-  Random_Init(1);
-  Profile_Init(); // PB5,PB4,PF3,PF2,PF1 
-  SSD1306_ClearBuffer();
-  SSD1306_DrawBMP(2, 62, SpaceInvadersMarquee, 0, SSD1306_WHITE);
-  SSD1306_OutBuffer();
-  EnableInterrupts();
-  Delay100ms(20);
-  SSD1306_ClearBuffer();
-  SSD1306_DrawBMP(47, 63, PlayerShip0, 0, SSD1306_WHITE); // player ship bottom
-  SSD1306_DrawBMP(53, 55, Bunker0, 0, SSD1306_WHITE);
-
-  SSD1306_DrawBMP(0, 9, Alien10pointA, 0, SSD1306_WHITE);
-  SSD1306_DrawBMP(20,9, Alien10pointB, 0, SSD1306_WHITE);
-  SSD1306_DrawBMP(40, 9, Alien20pointA, 0, SSD1306_WHITE);
-  SSD1306_DrawBMP(60, 9, Alien20pointB, 0, SSD1306_WHITE);
-  SSD1306_DrawBMP(80, 9, Alien30pointA, 0, SSD1306_WHITE);
-  SSD1306_DrawBMP(50, 19, AlienBossA, 0, SSD1306_WHITE);
-  SSD1306_OutBuffer();
-  Delay100ms(30);
-
-  SSD1306_OutClear();  
-  SSD1306_SetCursor(1, 1);
-  SSD1306_OutString("GAME OVER");
-  SSD1306_SetCursor(1, 2);
-  SSD1306_OutString("Nice try,");
-  SSD1306_SetCursor(1, 3);
-  SSD1306_OutString("Earthling!");
-  SSD1306_SetCursor(2, 4);
-  while(1){
-    Delay100ms(10);
-    SSD1306_SetCursor(19,0);
-    SSD1306_OutUDec2(time);
-    time++;
-    PF1 ^= 0x02;
-  }
-}
-
-// You can't use this timer, it is here for starter code only 
-// you must use interrupts to perform delays
-void Delay100ms(uint32_t count){uint32_t volatile time;
-  while(count>0){
-    time = 727240;  // 0.1sec at 80 MHz
-    while(time){
-	  	time--;
-    }
-    count--;
-  }
-}
 
