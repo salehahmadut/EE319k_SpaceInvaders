@@ -36,14 +36,10 @@ update log
 
 -will add lose condition when hearts = 0 later
 
-To-Do List
+5/4 4:50 AM
 
--make pause button highest priority interrupt during gameplay, add pause screen
+-now displays score during & at end of game
 
--sound stuff
+-3 sounds: getting hit, destroying alien, and firing missile
 
--select language, instructions screen (not sure if we need this?)
-
--make button stuff edge triggered 
-
--display/calculate score in top right
+-refactored some code, fixed some small bugs
