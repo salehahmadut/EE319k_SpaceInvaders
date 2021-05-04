@@ -16,12 +16,11 @@
 void Switch_Init(void){
 	SYSCTL_RCGCGPIO_R |= 0x10;
 	while((SYSCTL_PRGPIO_R&0x10) == 0){};
-	GPIO_PORTE_DEN_R |= 0x01;
+	GPIO_PORTE_DEN_R |= 0x03;
 	GPIO_PORTE_DIR_R &= 0xF0;
 	
 }
 
 uint32_t Switch_In(void){
-	return GPIO_PORTE_DATA_R&0x01;
+	return GPIO_PORTE_DATA_R&0x03;
 }
-
