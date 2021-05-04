@@ -1,3 +1,4 @@
+  
 // Lab10.c
 // Runs on TM4C123
 // Jonathan Valvano and Daniel Valvano
@@ -589,6 +590,13 @@ void DisplayScore(int32_t thescore, int32_t x, int32_t y)
 	int ind = 4;
 	char numchar = '0';
 	int dig = 0;
+	if(thescore==0)
+	{
+		for(int i = 0; i<5; i++)
+		{
+			scoreArr[i] = '0';
+		}
+	}
 	while(thescore>0)
 	{
 		dig = thescore % 10;
@@ -597,6 +605,7 @@ void DisplayScore(int32_t thescore, int32_t x, int32_t y)
 		ind--;
 		thescore /= 10;
 	}
+	
 	SSD1306_DrawString(x, y, scoreArr, SSD1306_WHITE);
 }
 
@@ -672,7 +681,6 @@ void Draw(void) {
 	SSD1306_DrawBMP(spaceship.x, spaceship.y, spaceship.image, 0, SSD1306_INVERSE);
 	}
 	SSD1306_OutBuffer();
-	
 }
 
 int main(void){
@@ -697,4 +705,3 @@ int main(void){
 	}
 }
 	
-
