@@ -1,4 +1,3 @@
-
 // Lab10.c
 // Runs on TM4C123
 // Jonathan Valvano and Daniel Valvano
@@ -71,6 +70,8 @@
 // TExaSdisplay logic analyzer shows 7 bits 0,PB5,PB4,PF3,PF2,PF1,0 
 // edit this to output which pins you use for profiling
 // you can output up to 7 pins
+void DisplayScore(int32_t thescore, int32_t x, int32_t y);
+
 void LogicAnalyzerTask(void){
   UART0_DR_R = 0x80|PF321|PB54; // sends at 10kHz
 }
@@ -91,6 +92,8 @@ void Profile_Init(void){
 void Delay100ms(uint32_t count); // time delay in 0.1 seconds
 
 typedef enum {dead,alive} status_t;
+
+//Defining structs, global variables
 
 struct sprite {
 	int32_t x;
@@ -120,7 +123,7 @@ typedef struct heart heart_t;
 
 
 #define MaxAliens 8
-#define MaxMissiles 10
+#define MaxMissiles 8
 #define MaxHearts 3
 #define MaxLasers 5
 
@@ -128,6 +131,7 @@ int NeedToWrite = 0;
 int adcData = 0;
 int lvl=0;
 int health = 6;
+int32_t score = 0;
 
 sprite_t aliens[MaxAliens];
 sprite_t aliensrow2[MaxAliens];
@@ -137,31 +141,27 @@ sprite_t missiles[MaxMissiles];
 heart_t hearts[MaxHearts];
 sprite_t lasers[MaxLasers];
 
-void Init(void) {
+
+//Initializations
+
+void AlienRowInit(sprite_t aliens[], int32_t y, status_t status)
+{
 	for(int i = 0; i<MaxAliens; i++)
 	{
 		aliens[i].x = 12*i + 10;
-		aliens[i].y = 20;
+		aliens[i].y = y;
 		aliens[i].vx = 1;
-		aliens[i].vy = 0;
+		aliens[i].vy = 1;
 		aliens[i].image1 = Alien10pointA;
-		aliens[i].status = dead;
+		aliens[i].status = status;
 		aliens[i].health = 3;
-		aliensrow2[i].x = 12*i + 10;
-		aliensrow2[i].y = 30;
-		aliensrow2[i].vx = 1;
-		aliensrow2[i].vy = 0;
-		aliensrow2[i].image1 = Alien10pointA;
-		aliensrow2[i].status = dead;
-		aliensrow2[i].health = 3;
-		aliensrow3[i].x = 12*i + 10;
-		aliensrow3[i].y = 40;
-		aliensrow3[i].vx = 1;
-		aliensrow3[i].vy = 0;
-		aliensrow3[i].image1 = Alien10pointA;
-		aliensrow3[i].status = dead;
-		aliensrow3[i].health = 3;
 	}
+}
+
+void Init(void) {
+	AlienRowInit(aliens, 20, dead);
+	AlienRowInit(aliensrow2, 30, dead);
+	AlienRowInit(aliensrow3, 40, dead);
 	for(int j = 0; j<MaxHearts; j++)
 	{
 		hearts[j].x = 12*j;
@@ -181,6 +181,8 @@ void Init(void) {
 	{
 		lasers[k].status = dead;
 	}
+	score = 0;
+	health = 6;
 }
 
 void Systick_Init(){
@@ -191,6 +193,7 @@ void Systick_Init(){
 	NVIC_ST_CTRL_R = 7;
 }
 
+//Sprite & Player Movement
 void AlienMove(sprite_t aliens[]) {
 	if(((aliens[MaxAliens-1].x + aliens[MaxAliens-1].vx) > 115) || ((aliens[0].x + aliens[0].vx) < 0))
 	{
@@ -216,6 +219,38 @@ void PlayerMove() {
 	spaceship.x = (110*adcData)/4096;
 	spaceship.y = 55;
 }
+
+void LaserMove(void){
+	for(int i = 0; i<MaxLasers; i++)
+	{
+		if(lasers[i].y > 63)
+		{
+			lasers[i].status = dead;
+		}
+		if(lasers[i].status == alive)
+		{
+			lasers[i].x += lasers[i].vx;
+			lasers[i].y += lasers[i].vy;
+		}
+	}
+}
+
+void MissileMove(void){
+	for(int i = 0; i<MaxMissiles; i++)
+	{
+		if(missiles[i].y < 0)
+		{
+			missiles[i].status = dead;
+		}
+		if(missiles[i].status == alive)
+		{
+			missiles[i].x += missiles[i].vx;
+			missiles[i].y += missiles[i].vy;
+		}
+	}
+}
+
+//Alien & Player Fire
 
 void Fire(int32_t vx, int32_t vy, const uint8_t *img)
 {
@@ -261,21 +296,6 @@ void AlienFire(void)
 	
 }
 
-void LaserMove(void){
-	for(int i = 0; i<MaxLasers; i++)
-	{
-		if(lasers[i].y > 63)
-		{
-			lasers[i].status = dead;
-		}
-		if(lasers[i].status == alive)
-		{
-			lasers[i].x += lasers[i].vx;
-			lasers[i].y += lasers[i].vy;
-		}
-	}
-}
-
 void Collisions(void){
   for(int i = 0; i<MaxMissiles; i++)
 	{
@@ -290,6 +310,8 @@ void Collisions(void){
 					if(aliensrow3[l].health == 0)
 					{
 						aliensrow3[l].status = dead;
+						Sound_invaderkilled();
+						score += 100; 
 					}
 				}
 			}
@@ -306,6 +328,8 @@ void Collisions(void){
 					if(aliensrow2[k].health == 0)
 					{
 						aliensrow2[k].status = dead;
+						Sound_invaderkilled();
+						score += 125;
 					}
 				}
 			}
@@ -321,6 +345,8 @@ void Collisions(void){
 					if(aliens[j].health == 0)
 					{
 						aliens[j].status = dead;
+						Sound_invaderkilled();
+						score += 150;
 					}
 				}
 			}
@@ -333,27 +359,19 @@ void Collisions(void){
 				{
 					lasers[m].status = dead;
 					health--;
+					Sound_Explosion();
+					score -= 200;
+					if(score<0)
+					{
+						score = 0;
+					}
 				}					
 			}
 		}
-		
 	} 
 		
 }
-void MissileMove(void){
-	for(int i = 0; i<MaxMissiles; i++)
-	{
-		if(missiles[i].y < 0)
-		{
-			missiles[i].status = dead;
-		}
-		if(missiles[i].status == alive)
-		{
-			missiles[i].x += missiles[i].vx;
-			missiles[i].y += missiles[i].vy;
-		}
-	}
-}
+
 int gonext=0;
 
 void LevelOver(void){
@@ -401,43 +419,29 @@ void LevelOver(void){
 		lvl=0;
 	}
 	}
-
 }
+
 void NextLevel(void){
 	if(gonext==1){
 		lvl++;
 		if(lvl==1){
-			for(int i=0; i<MaxAliens; i++){
-				aliens[i].status = alive;
-				aliens[i].y = 20;
-				aliens[i].health = 3;
-			}
+			health = 6;
+			score = 0;
+			AlienRowInit(aliens, 20, alive);
 		}
 		if(lvl==2){
-			for(int i=0; i<MaxAliens; i++){
-				aliens[i].status = alive;
-				aliensrow2[i].status = alive;
-				aliens[i].health = 3;
-				aliensrow2[i].health = 3;
-				aliens[i].y = 20;
-				aliensrow2[i].y = 30;
-				
-			}
+			AlienRowInit(aliens, 20, alive);
+			AlienRowInit(aliensrow2, 30, alive);
 		}
 		else if(lvl==3){
-			for(int i=0; i<MaxAliens; i++){
-				aliens[i].status = alive;
-				aliensrow2[i].status = alive;
-				aliensrow3[i].status = alive;
-				aliens[i].health = 3;
-				aliensrow2[i].health = 3;
-				aliensrow3[i].health = 3;
-				aliens[i].y = 20;
-				aliensrow2[i].y = 30;
-				aliensrow3[i].y = 40;
-			}
+			AlienRowInit(aliens, 20, alive);
+			AlienRowInit(aliensrow2, 30, alive);
+			AlienRowInit(aliensrow3, 40, alive);
 		}
 		else if(lvl==4){
+			AlienRowInit(aliens, 20, dead);
+			AlienRowInit(aliensrow2, 30, dead);
+			AlienRowInit(aliensrow3, 40, dead);
 			SSD1306_ClearBuffer();
 			SSD1306_OutClear();  
 			SSD1306_SetCursor(1, 1);
@@ -445,11 +449,17 @@ void NextLevel(void){
 			SSD1306_SetCursor(1, 2);
 			SSD1306_OutString("You Win!");
 			SSD1306_SetCursor(1, 3);
+			SSD1306_OutString("Score:");
+			SSD1306_OutSDec(score);
+			SSD1306_SetCursor(1,4);
 			SSD1306_OutString("Press Button 2 to ");
-			SSD1306_SetCursor(1, 4);
+			SSD1306_SetCursor(1, 5);
 			SSD1306_OutString("Play Again");
 		}
 		else if(lvl==5){
+			AlienRowInit(aliens, 20, dead);
+			AlienRowInit(aliensrow2, 30, dead);
+			AlienRowInit(aliensrow3, 40, dead);
 			SSD1306_ClearBuffer();
 			SSD1306_OutClear();  
 			SSD1306_SetCursor(1, 1);
@@ -457,8 +467,11 @@ void NextLevel(void){
 			SSD1306_SetCursor(1, 2);
 			SSD1306_OutString("You Lose");
 			SSD1306_SetCursor(1, 3);
+			SSD1306_OutString("Score:");
+			SSD1306_OutSDec(score);
+			SSD1306_SetCursor(1,4);
 			SSD1306_OutString("Press Button 2 to ");
-			SSD1306_SetCursor(1, 4);
+			SSD1306_SetCursor(1, 5);
 			SSD1306_OutString("Play Again");
 		}
 		gonext=0;
@@ -468,7 +481,7 @@ void NextLevel(void){
 void IsLost(void){
 	if(lvl==1){
 		for(int i=0; i<MaxAliens; i++){
-			if(aliens[i].status==alive && aliens[i].y>spaceship.y){
+			if((aliens[i].status==alive && aliens[i].y>spaceship.y) || health == 0){
 				lvl=4;            //goes to lvl 4 so that the gonext function automatically increments to lvl5
 				gonext=1;
 			}
@@ -476,7 +489,7 @@ void IsLost(void){
 	}
 	else if(lvl==2){
 		for(int i=0; i<MaxAliens; i++){
-			if((aliens[i].status==alive && aliens[i].y>spaceship.y) || (aliensrow2[i].status==alive && aliensrow2[i].y>spaceship.y)){
+			if((aliens[i].status==alive && aliens[i].y>spaceship.y) || (aliensrow2[i].status==alive && aliensrow2[i].y>spaceship.y) || health == 0){
 				lvl=4;
 				gonext=1;
 			}
@@ -484,7 +497,7 @@ void IsLost(void){
 	}
 	else if(lvl==3){
 		for(int i=0; i<MaxAliens; i++){
-			if((aliens[i].status==alive && aliens[i].y>spaceship.y) || (aliensrow2[i].status==alive && aliensrow2[i].y>spaceship.y) || (aliensrow3[i].status==alive && aliensrow3[i].y>spaceship.y)){
+			if((aliens[i].status==alive && aliens[i].y>spaceship.y) || (aliensrow2[i].status==alive && aliensrow2[i].y>spaceship.y) || (aliensrow3[i].status==alive && aliensrow3[i].y>spaceship.y) || health == 0){
 				lvl=4;
 			gonext=1;
 			}
@@ -531,9 +544,64 @@ void UpdateAlienImg(sprite_t aliens[])
 	}
 }
 
+char scoreArr[5] = {'0','0','0','0','0'};
+
+char ScoreToString(int32_t digit)
+{
+	char letter = ' ';
+  switch(digit) {
+		case 0:
+			letter = '0';
+			break;
+		case 1:
+			letter = '1';
+			break;
+		case 2:
+			letter = '2';
+			break;
+		case 3:
+			letter = '3';
+			break;
+		case 4:
+			letter = '4';
+			break;
+		case 5: 
+			letter = '5';
+			break;
+		case 6:
+			letter = '6';
+			break;
+		case 7:
+			letter = '7';
+			break;
+		case 8:
+			letter = '8';
+			break;
+		case 9:
+			letter = '9';
+			break;
+	}
+	return letter;
+}
+
+void DisplayScore(int32_t thescore, int32_t x, int32_t y)
+{
+	int ind = 4;
+	char numchar = '0';
+	int dig = 0;
+	while(thescore>0)
+	{
+		dig = thescore % 10;
+		numchar = ScoreToString(dig);
+		scoreArr[ind] = numchar;
+		ind--;
+		thescore /= 10;
+	}
+	SSD1306_DrawString(x, y, scoreArr, SSD1306_WHITE);
+}
+
 void SysTick_Handler(void) {
 	uint32_t btnInput = Switch_In();
-	//static uint32_t unpressed = 0;
 	if(lvl==0){
 	SSD1306_ClearBuffer();
   SSD1306_DrawBMP(2, 62, SpaceInvadersMarquee, 0, SSD1306_WHITE);
@@ -543,6 +611,7 @@ void SysTick_Handler(void) {
 	if((btnInput&0x01)==1)
 	{
 		Fire(0, -2, Missile0);
+		Sound_Shoot();
 	}
 	AlienMove(aliens);
 	AlienMove(aliensrow2);
@@ -554,21 +623,18 @@ void SysTick_Handler(void) {
 	IsLost();
 	LevelOver();
 	NextLevel();
-//	SetHearts(health, MaxHearts);
-//	UpdateAliens(aliens);
-//	UpdateAliens(aliensrow2);
-//	UpdateAliens(aliensrow3);
-	if(lvl!=4 && lvl!=5){
-	NeedToWrite = 1;
-	}
-}
-
-void Draw(void) {
 	SetHearts(health, MaxHearts);
 	UpdateAlienImg(aliens);
 	UpdateAlienImg(aliensrow2);
 	UpdateAlienImg(aliensrow3);
+	if(lvl!=4 && lvl!=5){
+		NeedToWrite = 1;
+	}
+}
+
+void Draw(void) {
 	SSD1306_ClearBuffer();
+	DisplayScore(score, 97, 0);
 	for(int i = 0; i<MaxAliens; i++)
 	{
 		if(aliens[i].status == alive)
@@ -618,6 +684,7 @@ int main(void){
 	Systick_Init();
 	ADC_Init(4);
 	Switch_Init();
+	Sound_Init();
 	EnableInterrupts();
 	Timer1_Init(&AlienFire, 80000000);
 	while(1)
