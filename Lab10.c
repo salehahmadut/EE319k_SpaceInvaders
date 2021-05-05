@@ -1,4 +1,4 @@
-  
+
 // Lab10.c
 // Runs on TM4C123
 // Jonathan Valvano and Daniel Valvano
@@ -133,6 +133,7 @@ int adcData = 0;
 int lvl=0;
 int health = 6;
 int32_t score = 0;
+int templvl = 0;
 
 sprite_t aliens[MaxAliens];
 sprite_t aliensrow2[MaxAliens];
@@ -374,17 +375,27 @@ void Collisions(void){
 }
 
 int gonext=0;
+int lang = 0;
 
 void LevelOver(void){
 	uint32_t btnInput = Switch_In();
 	if(lvl==0){
-		while((btnInput&0x01)==0)
+		Delay100ms(20);
+		gonext=1;
+	}
+	else if(lvl==1)
 	{
-		btnInput = Switch_In();
+		if(((btnInput&0x01)==1))
+	{
+		lang=0;
+		gonext=1;
 	}
-	gonext=1;
+		else if((btnInput&0x02)==2){
+		lang=1;
+	  gonext=1;
+		}
 	}
-	else if(lvl==1){
+	else if(lvl==2){
 		for(int i=0; i<MaxAliens; i++){
 			if(aliens[i].status == alive){
 				return;
@@ -392,7 +403,7 @@ void LevelOver(void){
 		}
 		gonext=1;
 	}
-	else if(lvl==2){
+	else if(lvl==3){
 		for(int i=0; i<MaxAliens; i++){
 			if(aliens[i].status == alive || aliensrow2[i].status==alive){
 				return;
@@ -400,7 +411,7 @@ void LevelOver(void){
 		}
 		gonext=1;
 	}
-	else if(lvl==3){
+	else if(lvl==4){
 		for(int i=0; i<MaxAliens; i++){
 			if(aliens[i].status == alive || aliensrow2[i].status==alive || aliensrow3[i].status==alive){
 				return;
@@ -408,13 +419,13 @@ void LevelOver(void){
 		}
 		gonext=1;
 	}
-	else if(lvl==4){
+	else if(lvl==5){
 		if((btnInput&0x02)==2)
 	{
 		lvl=0;
 	}
 	}
-	else if(lvl==5){
+	else if(lvl==6){
 		if((btnInput&0x02)==2)
 	{
 		lvl=0;
@@ -423,23 +434,38 @@ void LevelOver(void){
 }
 
 void NextLevel(void){
+	uint32_t btnInput = Switch_In();
+	if(((btnInput&0x02)==2) && lvl!=7 && lvl!=0 && lvl!=1 && lvl!=5 && lvl!=6){
+		templvl=lvl;
+		lvl=6;
+		gonext=1;
+	}
 	if(gonext==1){
-		lvl++;
-		if(lvl==1){
+		lvl++;	
+		if(lvl==1) {
+			SSD1306_ClearBuffer();
+			SSD1306_OutClear();  
+			SSD1306_SetCursor(1, 1);
+			SSD1306_OutString("Press B1 for English");
+			SSD1306_SetCursor(1, 2);
+			SSD1306_OutString("Press B2 for Spanish");
+		}
+		if(lvl==2){
 			health = 6;
 			score = 0;
 			AlienRowInit(aliens, 20, alive);
 		}
-		if(lvl==2){
+		if(lvl==3){
 			AlienRowInit(aliens, 20, alive);
 			AlienRowInit(aliensrow2, 30, alive);
 		}
-		else if(lvl==3){
+		else if(lvl==4){
 			AlienRowInit(aliens, 20, alive);
 			AlienRowInit(aliensrow2, 30, alive);
 			AlienRowInit(aliensrow3, 40, alive);
 		}
-		else if(lvl==4){
+		else if(lvl==5){
+			if(lang==0){
 			AlienRowInit(aliens, 20, dead);
 			AlienRowInit(aliensrow2, 30, dead);
 			AlienRowInit(aliensrow3, 40, dead);
@@ -456,8 +482,34 @@ void NextLevel(void){
 			SSD1306_OutString("Press Button 2 to ");
 			SSD1306_SetCursor(1, 5);
 			SSD1306_OutString("Play Again");
+			}
+			else{
+				const char Tu2[]= "T\xA2"" Ganas";
+			const char Press2[]= "Presione el Bot\xA1n 2";
+				AlienRowInit(aliens, 20, dead);
+			AlienRowInit(aliensrow2, 30, dead);
+			AlienRowInit(aliensrow3, 40, dead);
+			SSD1306_ClearBuffer();
+			SSD1306_OutClear();  
+			SSD1306_SetCursor(1, 1);
+			SSD1306_OutString("Felicidades!");
+			SSD1306_SetCursor(1, 2);
+			for(int i=0; i!=7; i++){
+			SSD1306_OutChar(Tu2[i]);
+			}
+			SSD1306_SetCursor(1,3);
+			SSD1306_OutString("Puntaje:");
+			SSD1306_OutSDec(score);
+			SSD1306_SetCursor(1, 4);
+			for(int i=0; i!=19; i++){
+      SSD1306_OutChar(Press2[i]);
+			}	
+			SSD1306_SetCursor(1, 5);
+			SSD1306_OutString("Para Juega de Nuevo");	
+			}
 		}
-		else if(lvl==5){
+		else if(lvl==6){
+			if(lang==0){
 			AlienRowInit(aliens, 20, dead);
 			AlienRowInit(aliensrow2, 30, dead);
 			AlienRowInit(aliensrow3, 40, dead);
@@ -474,32 +526,84 @@ void NextLevel(void){
 			SSD1306_OutString("Press Button 2 to ");
 			SSD1306_SetCursor(1, 5);
 			SSD1306_OutString("Play Again");
+			}
+			else{
+				const char Tu[]= "T\xA2"" pierdes";
+			const char Press[]= "Presione el Bot\xA1n 2";
+				AlienRowInit(aliens, 20, dead);
+			AlienRowInit(aliensrow2, 30, dead);
+			AlienRowInit(aliensrow3, 40, dead);
+			SSD1306_ClearBuffer();
+			SSD1306_OutClear();  
+			SSD1306_SetCursor(1, 1);
+			SSD1306_OutString("Juego terminado");
+			SSD1306_SetCursor(1, 2);
+			for(int i=0; i!=10; i++){
+      SSD1306_OutChar(Tu[i]);
+			}				
+			SSD1306_SetCursor(1,3);
+			SSD1306_OutString("Puntaje:");
+			SSD1306_OutSDec(score);
+			SSD1306_SetCursor(1, 4);
+			for(int i=0; i!=19; i++){
+      SSD1306_OutChar(Press[i]);
+			}	
+			SSD1306_SetCursor(1, 5);
+			SSD1306_OutString("Para Juega de Nuevo");	
+			}
+		}
+		else if(lvl==7){
+			if(lang==0){
+			SSD1306_ClearBuffer();
+			SSD1306_OutClear();  
+			SSD1306_SetCursor(1, 1);
+			SSD1306_OutString("Paused");
+			SSD1306_SetCursor(1, 2);
+			SSD1306_OutString("Press B2 to Unpause");
+			}
+			else{
+			SSD1306_ClearBuffer();
+			SSD1306_OutClear();  
+			SSD1306_SetCursor(1, 1);
+			SSD1306_OutString("Pausado");
+			SSD1306_SetCursor(1, 2);
+			SSD1306_OutString("Presione B2 para");	
+			SSD1306_SetCursor(1, 3);
+			SSD1306_OutString("reanudar la pausa");
+			}
+			Delay100ms(1);
+			btnInput=Switch_In();	
+			while(((btnInput&0x02)==0)){
+			btnInput=Switch_In();	
+			}
+			Delay100ms(1);
+			lvl=templvl;
 		}
 		gonext=0;
 	}
 	
 }
 void IsLost(void){
-	if(lvl==1){
+	if(lvl==2){
 		for(int i=0; i<MaxAliens; i++){
 			if((aliens[i].status==alive && aliens[i].y>spaceship.y) || health == 0){
-				lvl=4;            //goes to lvl 4 so that the gonext function automatically increments to lvl5
-				gonext=1;
-			}
-		}
-	}
-	else if(lvl==2){
-		for(int i=0; i<MaxAliens; i++){
-			if((aliens[i].status==alive && aliens[i].y>spaceship.y) || (aliensrow2[i].status==alive && aliensrow2[i].y>spaceship.y) || health == 0){
-				lvl=4;
+				lvl=5;            //goes to lvl 4 so that the gonext function automatically increments to lvl5
 				gonext=1;
 			}
 		}
 	}
 	else if(lvl==3){
 		for(int i=0; i<MaxAliens; i++){
+			if((aliens[i].status==alive && aliens[i].y>spaceship.y) || (aliensrow2[i].status==alive && aliensrow2[i].y>spaceship.y) || health == 0){
+				lvl=5;
+				gonext=1;
+			}
+		}
+	}
+	else if(lvl==4){
+		for(int i=0; i<MaxAliens; i++){
 			if((aliens[i].status==alive && aliens[i].y>spaceship.y) || (aliensrow2[i].status==alive && aliensrow2[i].y>spaceship.y) || (aliensrow3[i].status==alive && aliensrow3[i].y>spaceship.y) || health == 0){
-				lvl=4;
+				lvl=5;
 			gonext=1;
 			}
 		}
@@ -636,7 +740,7 @@ void SysTick_Handler(void) {
 	UpdateAlienImg(aliens);
 	UpdateAlienImg(aliensrow2);
 	UpdateAlienImg(aliensrow3);
-	if(lvl!=4 && lvl!=5){
+	if(lvl!=5 && lvl!=6){
 		NeedToWrite = 1;
 	}
 }
@@ -704,4 +808,12 @@ int main(void){
 		}
 	}
 }
-	
+void Delay100ms(uint32_t count){uint32_t volatile time;
+  while(count>0){
+    time = 727240;  // 0.1sec at 80 MHz
+    while(time){
+	  	time--;
+    }
+    count--;
+  }
+}
